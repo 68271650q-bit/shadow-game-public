@@ -436,6 +436,10 @@
       display: block;
       object-fit: cover;
       background: #1b2532;
+      transform: none;
+    }
+
+    video.front-camera {
       transform: scaleX(-1);
     }
 
@@ -1069,6 +1073,7 @@
             <div class="capture-actions" style="margin-top: 16px;">
               <button id="backBtn" class="ghost-button">◀ 回去選題</button>
               <button id="cameraModeBtn" class="pill-button">📷 拍照</button>
+              <button id="flipCameraBtn" class="pill-button">🔄 翻轉鏡頭</button>
               <label class="pill-button" for="fileInput">🖼️ 上傳照片</label>
               <button id="captureBtn" class="primary-button">✨ 開始拍照</button>
               <button id="analyzeUploadBtn" class="secondary-button" hidden>🔍 辨識這張照片</button>

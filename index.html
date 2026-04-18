@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>影子變變變</title>
-  <script src="./vendor/tf.min.js"></script>
-  <script src="./vendor/teachablemachine-image.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
   <style>
     :root {
       --sky: #bfeaff;
@@ -1248,6 +1248,7 @@
     const captureBtn = document.getElementById("captureBtn");
     const analyzeUploadBtn = document.getElementById("analyzeUploadBtn");
     const cameraModeBtn = document.getElementById("cameraModeBtn");
+    const flipCameraBtn = document.getElementById("flipCameraBtn");
     const backBtn = document.getElementById("backBtn");
     const countdownEl = document.getElementById("countdown");
     const resultCard = document.getElementById("resultCard");
@@ -1286,6 +1287,8 @@
     let modelReady = false;
     let modelErrorMessage = "";
     let retryMode = "capture";
+    let preferredFacingMode = "environment";
+    let activeFacingMode = "environment";
 
     function showPage(page) {
       [pageSelect, pageCapture, pageResult].forEach((el) => el.classList.remove("active"));
@@ -1413,23 +1416,66 @@
       // Keep this as a no-op so result logic stays simple while removing spoken voice-over.
     }
 
-    async function ensureCameraStarted() {
-      if (isCameraReady && cameraStream) {
+    function updateCameraFacingUi() {
+      const usingFrontCamera = activeFacingMode === "user";
+      camera.classList.toggle("front-camera", usingFrontCamera);
+      flipCameraBtn.textContent = usingFrontCamera ? "🔄 切到後鏡頭" : "🔄 切到前鏡頭";
+      captureModeLabel.textContent = usingFrontCamera ? "📷 前置鏡頭" : "📷 後置鏡頭";
+    }
+
+    function stopCameraStream() {
+      if (!cameraStream) {
+        return;
+      }
+
+      cameraStream.getTracks().forEach((track) => track.stop());
+      camera.srcObject = null;
+      cameraStream = null;
+      isCameraReady = false;
+    }
+
+    async function openCameraWithFacingMode(facingMode) {
+      const attempts = [
+        { video: { facingMode: { exact: facingMode }, width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false },
+        { video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false },
+        { video: { width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false }
+      ];
+
+      let lastError = null;
+      for (const constraints of attempts) {
+        try {
+          return await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      throw lastError || new Error("無法啟動鏡頭");
+    }
+
+    async function ensureCameraStarted(forceRestart = false) {
+      if (isCameraReady && cameraStream && !forceRestart) {
         return;
       }
 
       try {
+        if (forceRestart) {
+          stopCameraStream();
+        }
+
         captureBtn.disabled = true;
+        flipCameraBtn.disabled = true;
         loadingText.textContent = "正在打開鏡頭...";
         loadingScreen.classList.remove("hidden");
-        cameraStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } },
-          audio: false
-        });
+        cameraStream = await openCameraWithFacingMode(preferredFacingMode);
         camera.srcObject = cameraStream;
         await camera.play();
+        const trackSettings = cameraStream.getVideoTracks()[0]?.getSettings?.() || {};
+        activeFacingMode = trackSettings.facingMode || preferredFacingMode;
         isCameraReady = true;
+        updateCameraFacingUi();
       } catch (error) {
+        console.error("camera start failed", error);
         captureBtn.disabled = true;
         captureBtn.textContent = "⚠️ 無法使用鏡頭";
         captureModeLabel.textContent = "📷 鏡頭未啟用";
@@ -1437,6 +1483,7 @@
         loadingScreen.classList.add("hidden");
         loadingText.textContent = "正在載入動物朋友和辨識模型...";
         captureBtn.disabled = !isCameraReady;
+        flipCameraBtn.disabled = false;
       }
     }
 
@@ -1796,6 +1843,11 @@
         showCameraMode();
         ensureCameraStarted();
       });
+      flipCameraBtn.addEventListener("click", async () => {
+        preferredFacingMode = preferredFacingMode === "environment" ? "user" : "environment";
+        showCameraMode();
+        await ensureCameraStarted(true);
+      });
       captureBtn.addEventListener("click", startCountdownAndCapture);
       analyzeUploadBtn.addEventListener("click", analyzeCurrentUpload);
       retryBtn.addEventListener("click", retryLevel);
@@ -1827,9 +1879,7 @@
     }
 
     window.addEventListener("beforeunload", () => {
-      if (cameraStream) {
-        cameraStream.getTracks().forEach((track) => track.stop());
-      }
+      stopCameraStream();
     });
 
     init();

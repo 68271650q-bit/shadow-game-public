@@ -1169,6 +1169,7 @@
   <script>
     const MODEL_BASE = "https://teachablemachine.withgoogle.com/models/2rNdqQSEN/";
     const SUCCESS_THRESHOLD = 0.6;
+    const LOW_CONFIDENCE_THRESHOLD = 0.5;
     const isFileProtocol = window.location.protocol === "file:";
     const MODEL_SOURCES = isFileProtocol
       ? [
@@ -1678,6 +1679,8 @@
       const bestAnimal = animals[best.className] || targetAnimal;
       const score = Math.round(best.probability * 100);
       const isSuccess = best.className === currentAnimalKey && best.probability >= SUCCESS_THRESHOLD;
+      const isLowConfidence = best.probability < LOW_CONFIDENCE_THRESHOLD;
+      const isRightAnimalButUnclear = best.className === currentAnimalKey && !isSuccess;
 
       resultVisual.dataset.tone = isSuccess ? targetAnimal.tone : targetAnimal.tone;
       resultAnimalImage.src = isSuccess ? targetAnimal.resultArt : targetAnimal.failArt;
@@ -1727,9 +1730,19 @@
         resultCard.classList.remove("success");
         resultCard.classList.add("fail");
         resultStatusChip.textContent = "💛 很好的嘗試";
-        resultTitle.textContent = `差一點點，這次被看成${bestAnimal.name}了`;
-        resultMessage.textContent = `你想做的是${targetAnimal.name}，但這次的手影線條讓系統更像看到${bestAnimal.name}。${targetAnimal.failText}`;
-        resultHint.textContent = `可以試試把${targetAnimal.name}的特徵再做清楚一點，按「再試一次」就能立刻重來。`;
+        if (isLowConfidence) {
+          resultTitle.textContent = "這次影子還不夠清楚喔";
+          resultMessage.textContent = `系統這次還看不太出來你做的是哪一種動物。${targetAnimal.failText}`;
+          resultHint.textContent = `可以試試把${targetAnimal.name}的特徵做得更明顯一點，三種動物都要讓輪廓更清楚，按「再試一次」就能立刻重來。`;
+        } else if (isRightAnimalButUnclear) {
+          resultTitle.textContent = `有像${targetAnimal.name}了，再清楚一點就成功`;
+          resultMessage.textContent = `系統已經有看出這是${targetAnimal.name}，只是輪廓還不夠清楚，所以這次還沒過關。${targetAnimal.failText}`;
+          resultHint.textContent = `再把${targetAnimal.name}最明顯的特徵做清楚一點，分數超過 60% 就成功了。`;
+        } else {
+          resultTitle.textContent = `差一點點，這次被看成${bestAnimal.name}了`;
+          resultMessage.textContent = `你想做的是${targetAnimal.name}，但這次的手影線條讓系統更像看到${bestAnimal.name}。${targetAnimal.failText}`;
+          resultHint.textContent = `可以試試把${targetAnimal.name}的特徵再做清楚一點，按「再試一次」就能立刻重來。`;
+        }
         replayAudioBtn.disabled = true;
       }
     }

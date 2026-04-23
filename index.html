@@ -1630,6 +1630,7 @@
       showPage(pageResult);
       resultTitle.textContent = "辨識中...";
       resultMessage.textContent = "影子變變變正在看看這是什麼動物。";
+      scoreBubble.hidden = true;
       scoreBubble.textContent = "🎯 這次分數：讀取中";
       resultStatusChip.textContent = "🔍 辨識進行中";
       resultHint.textContent = "請稍等一下，結果馬上出來。";
@@ -1665,6 +1666,7 @@
       resultStatusChip.textContent = "⚠️ 模型還沒準備好";
       resultTitle.textContent = "辨識模型還沒成功載入";
       resultMessage.textContent = `${message} 你可以按「重新載入模型」，成功後會直接回到這一關。`;
+      scoreBubble.hidden = true;
       scoreBubble.textContent = "🎯 這次分數：暫時無法計算";
       resultHint.textContent = "如果你剛剛是上傳照片，通常重新載入模型後就能繼續辨識。";
       replayAudioBtn.disabled = true;
@@ -1691,7 +1693,8 @@
       resultVisual.classList.remove("success-burst");
 
       resultSpeech.textContent = isSuccess ? targetAnimal.speech : "再試試";
-      scoreBubble.textContent = isSuccess ? `🎯 這次分數：${score}%` : "🎯 這次分數：本次不顯示";
+      scoreBubble.hidden = !isSuccess;
+      scoreBubble.textContent = `🎯 這次分數：${score}%`;
       replayAudioBtn.disabled = !isSuccess;
       nextBtn.disabled = false;
       retryBtn.disabled = false;

@@ -1189,6 +1189,7 @@
         guide: "./assets/bird_guide.png.png",
         selectArt: "./assets/bird_1.png",
         resultArt: "./assets/bird_2.png",
+        failArt: "./assets/bird_3.png",
         sound: "./assets/bird_sound.wav",
         tone: "bird",
         animClass: "animal-anim-bird",
@@ -1204,6 +1205,7 @@
         guide: "./assets/dog_guide.png.png",
         selectArt: "./assets/dog_1.png",
         resultArt: "./assets/dog_2.png",
+        failArt: "./assets/dog_3.png",
         sound: "https://actions.google.com/sounds/v1/animals/dog_barking.ogg",
         tone: "dog",
         animClass: "animal-anim-dog",
@@ -1219,6 +1221,7 @@
         guide: "./assets/rabbit_guide.png.png",
         selectArt: "./assets/rabbit_1.png",
         resultArt: "./assets/rabbit_2.png",
+        failArt: "./assets/rabbit_3.png",
         sound: "./assets/rabbit_pop.wav",
         tone: "rabbit",
         animClass: "animal-anim-rabbit",
@@ -1289,6 +1292,8 @@
     let retryMode = "capture";
     let preferredFacingMode = "environment";
     let activeFacingMode = "environment";
+    const celebrationSound = "./assets/victory.wav";
+    const defeatSound = "./assets/defeat.wav";
 
     function showPage(page) {
       [pageSelect, pageCapture, pageResult].forEach((el) => el.classList.remove("active"));
@@ -1410,6 +1415,12 @@
           currentAudio.pause();
         }
       }, 5000);
+    }
+
+    function playEffectSound(soundPath) {
+      const audio = new Audio(soundPath);
+      audio.volume = 1;
+      audio.play().catch(() => {});
     }
 
     function speak() {
@@ -1668,15 +1679,15 @@
       const score = Math.round(best.probability * 100);
       const isSuccess = best.className === currentAnimalKey && best.probability >= SUCCESS_THRESHOLD;
 
-      resultVisual.dataset.tone = isSuccess ? targetAnimal.tone : bestAnimal.tone;
-      resultAnimalImage.src = (isSuccess ? targetAnimal : bestAnimal).resultArt;
-      resultAnimalImage.alt = (isSuccess ? targetAnimal : bestAnimal).name;
+      resultVisual.dataset.tone = isSuccess ? targetAnimal.tone : targetAnimal.tone;
+      resultAnimalImage.src = isSuccess ? targetAnimal.resultArt : targetAnimal.failArt;
+      resultAnimalImage.alt = isSuccess ? targetAnimal.name : `${targetAnimal.name}失敗提示`;
       resultAnimalImage.className = "";
       void resultAnimalImage.offsetWidth;
-      resultAnimalImage.classList.add((isSuccess ? targetAnimal : bestAnimal).animClass);
+      resultAnimalImage.classList.add((isSuccess ? targetAnimal : targetAnimal).animClass);
       resultVisual.classList.remove("success-burst");
 
-      resultSpeech.textContent = (isSuccess ? targetAnimal : bestAnimal).speech;
+      resultSpeech.textContent = isSuccess ? targetAnimal.speech : "再試試";
       scoreBubble.textContent = `🎯 這次分數：${score}%`;
       replayAudioBtn.disabled = !isSuccess;
       nextBtn.disabled = false;
@@ -1712,12 +1723,13 @@
           }, 1400);
         }
       } else {
+        playEffectSound(defeatSound);
         resultCard.classList.remove("success");
         resultCard.classList.add("fail");
         resultStatusChip.textContent = "💛 很好的嘗試";
-        resultTitle.textContent = "再試一次，你已經很棒了";
-        resultMessage.textContent = targetAnimal.failText;
-        resultHint.textContent = `這次系統比較像看到${bestAnimal.name}，按「再試一次」就可以馬上重來。`;
+        resultTitle.textContent = `差一點點，這次被看成${bestAnimal.name}了`;
+        resultMessage.textContent = `你想做的是${targetAnimal.name}，但這次的手影線條讓系統更像看到${bestAnimal.name}。${targetAnimal.failText}`;
+        resultHint.textContent = `可以試試把${targetAnimal.name}的特徵再做清楚一點，按「再試一次」就能立刻重來。`;
         replayAudioBtn.disabled = true;
       }
     }
@@ -1732,6 +1744,8 @@
 
     function launchCelebration() {
       celebration.classList.add("show");
+      stopCurrentAudio();
+      playEffectSound(celebrationSound);
       createConfetti(140);
     }
 

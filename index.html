@@ -1691,7 +1691,7 @@
       resultVisual.classList.remove("success-burst");
 
       resultSpeech.textContent = isSuccess ? targetAnimal.speech : "再試試";
-      scoreBubble.textContent = `🎯 這次分數：${score}%`;
+      scoreBubble.textContent = isSuccess ? `🎯 這次分數：${score}%` : "🎯 這次分數：本次不顯示";
       replayAudioBtn.disabled = !isSuccess;
       nextBtn.disabled = false;
       retryBtn.disabled = false;
